@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView } from 'react-native';
-import { Searchbar } from 'react-native-paper';
+import { ScrollView, View } from 'react-native';
+import { Searchbar, ActivityIndicator, Colors } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { fetchSongsThunk } from '../actions';
-import { getItems } from '../selectors';
+import { getItems, getIsLoading } from '../selectors';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { SongItem } from '../item';
 
@@ -12,7 +12,10 @@ export const WrapList = () => {
   const [nameSong, changeName] = useState('');
   const debouncedSearch = useDebounce(nameSong, 500);
   const dispatch = useDispatch();
-  const items = useSelector(getItems);
+  const { items, isLoading } = useSelector((state) => ({
+    items: getItems(state),
+    isLoading: getIsLoading(state),
+  }));
 
   const onChangeText = (value) => {
     changeName(value);
@@ -22,9 +25,9 @@ export const WrapList = () => {
     if (debouncedSearch) {
       dispatch(
         fetchSongsThunk({
-          limit: 0,
+          limit: 20,
           offset: 0,
-          term: nameSong,
+          term: debouncedSearch,
         })
       );
     }
@@ -38,14 +41,24 @@ export const WrapList = () => {
         value={nameSong}
         style={{ marginBottom: 20 }}
       />
-      <ScrollView>
-        {items.map((item) => (
-          <SongItem
-            key={`${item.artistId}_${item.collectionId}_${item.trackId}`}
-            trackData={item}
+      {isLoading ? (
+        <View>
+          <ActivityIndicator
+            animating={true}
+            size="large"
+            color={Colors.red800}
           />
-        ))}
-      </ScrollView>
+        </View>
+      ) : (
+        <ScrollView>
+          {items.map((item) => (
+            <SongItem
+              key={`${item.artistId}_${item.collectionId}_${item.trackId}`}
+              trackData={item}
+            />
+          ))}
+        </ScrollView>
+      )}
     </React.Fragment>
   );
 };
